@@ -17,8 +17,8 @@ def get_item_info():
 def track_item():
     # Get convert request to item
     item_to_track = ItemToTrack.from_json(request.data)
-    # TODO: Put item in database
-
+    # Put item in database
+    item_to_track.save()
     return f'Item with url: {item_to_track.url} is now being tracked!'
 
 
