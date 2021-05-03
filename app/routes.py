@@ -1,4 +1,4 @@
-from flask import request, make_response
+from flask import request
 from flask import jsonify
 from app import app
 from app import item_scraper

@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 from app.item import Item
 from app.errors import NoHTMLElementFoundError
-from app.util import Price
+from app.util import CurrentPrice
 
 
 # General scraping steps
@@ -28,14 +28,11 @@ def scrape_metropolis_music(url, page_to_scrap):
     paragraphs = container('p')
     artist = paragraphs[0].string
     name = f'{record} - {artist}'
-    # TODO: Price not parsing correctly
     if len(paragraphs[1].contents) == 2:
         amount_and_currency = paragraphs[1].contents[1].string.split()
-        print(amount_and_currency)
     else:
         amount_and_currency = paragraphs[1].string.string.split()
-        print(amount_and_currency)
-    price = Price(amount=amount_and_currency[0], currency=amount_and_currency[1])
+    price = CurrentPrice(amount=float(amount_and_currency[0].replace('.', '')), currency=amount_and_currency[1])
     available = True
 
     return Item(url, name, price, available, {})
