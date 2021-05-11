@@ -1,24 +1,9 @@
-import mongoengine as me
+from selenium import webdriver
 
 
-class Price(me.EmbeddedDocument):
-    amount = me.DecimalField(required=True)
-    currency = me.StringField(required=True)
+def get_chrome_driver_with_options(*args):
+    options = webdriver.ChromeOptions()
+    for arg in args:
+        options.add_argument(arg)
 
-    def __repr__(self):
-        return f"{self.price!r} {self.currency!r})"
-
-    def __str__(self):
-        return f"{self.amount} {self.currency}"
-
-
-class CurrentPrice:
-    def __init__(self, amount, currency):
-        self.amount = amount
-        self.currency = currency
-
-    def __repr__(self):
-        return f"{self.price!r} {self.currency!r})"
-
-    def __str__(self):
-        return f"{self.amount} {self.currency}"
+    return webdriver.Chrome("C:\\Users\\gemi\\Downloads\\chromedriver.exe", chrome_options=options)

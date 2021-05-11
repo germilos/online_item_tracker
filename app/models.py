@@ -1,6 +1,6 @@
 import json
 import mongoengine as me
-from app.util import Price
+from app import app, bcrypt
 
 
 class Item:
@@ -33,3 +33,38 @@ class ItemToTrack(me.Document):
 
     def __str__(self):
         return f"Price: {self.price}, Available: {self.available}"
+
+
+class Price(me.EmbeddedDocument):
+    amount = me.DecimalField(required=True)
+    currency = me.StringField(required=True)
+
+    def __repr__(self):
+        return f"{self.price!r} {self.currency!r})"
+
+    def __str__(self):
+        return f"{self.amount} {self.currency}"
+
+
+class CurrentPrice:
+    def __init__(self, amount, currency):
+        self.amount = amount
+        self.currency = currency
+
+    def __repr__(self):
+        return f"{self.price!r} {self.currency!r})"
+
+    def __str__(self):
+        return f"{self.amount} {self.currency}"
+
+
+class OnlineShopper(me.Document):
+    email = me.EmailField(required=True)
+    password = me.StringField(required=True)
+    registered_on=me.DateTimeField()
+
+    def __init__(self, email, password, registered_on):
+        self.email = email
+        self.password = bcrypt.generate_password_hash(
+            password, app.config.get('BCRYPT_LOG_ROUNDS')
+        ).decode()

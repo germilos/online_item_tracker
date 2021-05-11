@@ -2,9 +2,9 @@
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
-from app.item import Item
+from app.models import Item, CurrentPrice
 from app.errors import NoHTMLElementFoundError
-from app.util import CurrentPrice
+from app.util import get_chrome_driver_with_options
 
 
 # General scraping steps
@@ -48,15 +48,34 @@ def scrape_zara(url, page_to_scrap):
     price_span = container.find('span', class_='price__amount').string
     amount_and_currency = price_span.split()
     price = CurrentPrice(amount=float(amount_and_currency[0].replace(',', '')), currency=amount_and_currency[1])
-    available = False
+    available = True
 
-    selected_color_container = container.find('div', class_='product-detail-color-selector')
-    selected_color = selected_color_container.p.contents[3]
+    driver = get_chrome_driver_with_options('--ignore-certificate-errors', '--incognito', '--headless')
+    driver.get(url)
 
-    selected_size_container = container.find('div', class_='product-size-selector')
-    size = selected_size_container.span.string
+    # TODO: Refactor
+    color_buttons = driver.find_elements_by_class_name("product-detail-color-selector__color-button")
+    sizes_by_color = {}
+    for button in color_buttons:
+        driver.execute_script("arguments[0].click();", button)
+        page = BeautifulSoup(driver.page_source, 'html.parser')
 
-    return Item(url, name, price, available, {'color': selected_color, 'size': size})
+        container = page.find('div', class_='product-detail-info')
+
+        colors_list = container.find('ul', class_='product-detail-color-selector__colors')
+        selected_color_element = colors_list.find('li', class_='product-detail-color-selector__color product-detail-color-selector__color--is-selected')
+        selected_color = selected_color_element.span.string
+
+        selected_size_container = container.find('div', class_='product-size-selector')
+        available_sizes = selected_size_container.find_all('li')
+        size_numbers = []
+        for size in available_sizes:
+            if 'product-size-selector__size-list-item--out-of-stock' not in size.get('class'):
+                size_numbers.append(size.span.string)
+
+        sizes_by_color[selected_color] = size_numbers
+
+    return Item(url, name, price, available, {'sizes_by_color': sizes_by_color})
 
 
 def extract_website_name(url):

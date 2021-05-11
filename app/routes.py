@@ -3,7 +3,7 @@ from flask import jsonify
 from app import app
 from app import item_scraper
 from app.errors import InvalidUsageError
-from app.item import ItemToTrack
+from app.models import ItemToTrack
 import json
 
 
