@@ -2,7 +2,8 @@ import json
 import mongoengine as me
 import jwt
 import datetime
-from app import app, bcrypt
+from app import app
+import flask_bcrypt
 
 
 class Item:
@@ -61,27 +62,32 @@ class CurrentPrice:
 
 
 class OnlineShopper(me.Document):
-    email = me.EmailField(required=True)
+    email = me.StringField(required=True)
     password = me.StringField(required=True)
     registered_on = me.DateTimeField()
 
-    def __init__(self, email, password, registered_on):
-        self.email = email
-        self.password = bcrypt.generate_password_hash(
+    @classmethod
+    def create_user(cls, email, password):
+        user = cls(email=email, registered_on=datetime.datetime.now())
+        user.set_password(password)
+        return user
+
+    def set_password(self, password):
+        self.password = flask_bcrypt.generate_password_hash(
             password, app.config.get('BCRYPT_LOG_ROUNDS')
         ).decode()
-        self.registered_on = registered_on
+        return self
 
     def encode_auth_token(self, user_id):
         try:
             payload = {
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(days=0, seconds=5),
                 'iat': datetime.datetime.utcnow(),
-                'sub': user_id
+                'sub': str(user_id)
             }
             return jwt.encode(
                 payload,
-                app.config.get('SECRET_KEY'),  # TODO: Replace with key from config
+                app.config.get('SECRET_KEY'),
                 algorithm='HS256'
             )
         except Exception as e:
@@ -90,9 +96,17 @@ class OnlineShopper(me.Document):
     @staticmethod
     def decode_auth_token(auth_token):
         try:
-            payload = jwt.decode(auth_token, app.config.get('SECRET_KEY'))
+            payload = jwt.decode(auth_token, app.config.get('SECRET_KEY'), algorithms="HS256")
             return payload['sub']
         except jwt.ExpiredSignatureError:
             return 'Signature expired. Please log in again.'
         except jwt.InvalidTokenError:
             return 'Invalid token. Please log in again.'
+
+    def __repr__(self):
+        return f"{self.email!r} {self.registered_on!r})"
+
+    def __str__(self):
+        return f"{self.email} {self.registered_on}"
+
+
