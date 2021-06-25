@@ -5,6 +5,7 @@ from app.errors import InvalidUsageError
 from app.models import ItemToTrack, OnlineShopper
 
 import json
+import flask_bcrypt
 
 
 @app.route('/item-info')
@@ -20,14 +21,12 @@ def track_item():
     item_to_track = ItemToTrack.from_json(request.data)
     # Put item in database
     item_to_track.save()
-    return f'Item with url: {item_to_track.url} is now being tracked!'
+    return f'Item with id: {item_to_track.id} is now being tracked!'
 
 
-@app.route('/items', methods=['GET'])
-def get_tracked_item():
-    url = request.args.get('url')
-    # Put item in database
-    tracked_item = ItemToTrack.objects(url=url).first()
+@app.route('/items/<item_id>', methods=['GET'])
+def get_tracked_item(item_id):
+    tracked_item = ItemToTrack.objects(id=item_id).first()
     return json.loads(tracked_item.to_json())
 
 
@@ -71,14 +70,23 @@ def login():
     try:
         # fetch the user data
         user = OnlineShopper.objects(email=post_data.get('email')).first()
-        auth_token = user.encode_auth_token(user.id)
-        if auth_token:
+        if user and flask_bcrypt.check_password_hash(
+                user.password, post_data.get('password')
+        ):
+            auth_token = user.encode_auth_token(user.id)
+            if auth_token:
+                responseObject = {
+                    'status': 'success',
+                    'message': 'Successfully logged in.',
+                    'auth_token': auth_token
+                }
+                return make_response(jsonify(responseObject)), 200
+        else:
             responseObject = {
-                'status': 'success',
-                'message': 'Successfully logged in.',
-                'auth_token': auth_token
+                'status': 'fail',
+                'message': 'User does not exist.'
             }
-            return make_response(jsonify(responseObject)), 200
+            return make_response(jsonify(responseObject)), 404
     except Exception as e:
         print(e)
         responseObject = {
