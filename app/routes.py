@@ -3,6 +3,7 @@ from app import app
 from app import item_scraper
 from app.errors import InvalidUsageError
 from app.models import ItemToTrack, OnlineShopper
+from functools import wraps
 
 import json
 import flask_bcrypt
@@ -17,8 +18,13 @@ def get_item_info():
 
 @app.route('/items', methods=['POST'])
 def track_item():
+    if 'Authorization' in request.headers:
+        token = request.headers['Authorization'].split(' ')[1]
+        shopper_id = OnlineShopper.decode_auth_token(token)
+
     # Get convert request to item
     item_to_track = ItemToTrack.from_json(request.data)
+    item_to_track.shopper_id = shopper_id
     # Put item in database
     item_to_track.save()
     return f'Item with id: {item_to_track.id} is now being tracked!'
@@ -101,3 +107,24 @@ def handle_invalid_usage(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
+
+# def token_required(f):
+#    @wraps(f)
+#    def decorator(*args, **kwargs):
+# 
+#       token = None
+# 
+#       if 'x-access-tokens' in request.headers:
+#          token = request.headers['x-access-tokens']
+# 
+#       if not token:
+#          return jsonify({'message': 'a valid token is missing'})
+# 
+#       try:
+#          # data = jwt.decode(token, app.config[SECRET_KEY])
+#          # current_user = OnlineShopper.objects(public_id=data['public_id']).first()
+#       except:
+#          return jsonify({'message': 'token is invalid'})
+# 
+#         return f(current_user, *args, **kwargs)
+#    return decorator

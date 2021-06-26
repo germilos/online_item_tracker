@@ -40,6 +40,7 @@ class ItemToTrack(me.Document):
     url = me.StringField(required=True)
     price = me.EmbeddedDocumentField(Price)
     available = me.BooleanField(required=True)
+    shopper_id = me.StringField()
     additional_info = me.DictField()
 
     def __repr__(self):
@@ -81,7 +82,7 @@ class OnlineShopper(me.Document):
     def encode_auth_token(self, user_id):
         try:
             payload = {
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=0, seconds=5),
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1, seconds=0),
                 'iat': datetime.datetime.utcnow(),
                 'sub': str(user_id)
             }
