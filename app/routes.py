@@ -9,6 +9,28 @@ import json
 import flask_bcrypt
 
 
+def token_required(f):
+    @wraps(f)
+    def decorator(*args, **kwargs):
+        token = None
+
+        if 'Authorization' in request.headers:
+            token = request.headers['Authorization'].split(' ')[1]
+
+        if not token:
+            return jsonify({'message': 'a valid token is missing'})
+
+        try:
+            user_id = OnlineShopper.decode_auth_token(token)
+            user = OnlineShopper.objects(id=user_id).first()
+        except:
+            return jsonify({'message': 'token is invalid'})
+
+        return f(*args, **kwargs)
+
+    return decorator
+
+
 @app.route('/item-info')
 def get_item_info():
     url = request.args.get('url')
@@ -17,6 +39,7 @@ def get_item_info():
 
 
 @app.route('/items', methods=['POST'])
+@token_required
 def track_item():
     if 'Authorization' in request.headers:
         token = request.headers['Authorization'].split(' ')[1]
@@ -31,6 +54,7 @@ def track_item():
 
 
 @app.route('/items/<item_id>', methods=['GET'])
+@token_required
 def get_tracked_item(item_id):
     tracked_item = ItemToTrack.objects(id=item_id).first()
     return json.loads(tracked_item.to_json())
@@ -107,24 +131,3 @@ def handle_invalid_usage(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
-
-# def token_required(f):
-#    @wraps(f)
-#    def decorator(*args, **kwargs):
-# 
-#       token = None
-# 
-#       if 'x-access-tokens' in request.headers:
-#          token = request.headers['x-access-tokens']
-# 
-#       if not token:
-#          return jsonify({'message': 'a valid token is missing'})
-# 
-#       try:
-#          # data = jwt.decode(token, app.config[SECRET_KEY])
-#          # current_user = OnlineShopper.objects(public_id=data['public_id']).first()
-#       except:
-#          return jsonify({'message': 'token is invalid'})
-# 
-#         return f(current_user, *args, **kwargs)
-#    return decorator
